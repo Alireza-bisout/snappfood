@@ -3,11 +3,12 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoryEntity } from './entities/category.entity';
-import { Not, Repository } from 'typeorm';
+import { DeepPartial, Not, Repository } from 'typeorm';
 import { S3Service } from '../s3/s3.service';
 import { isBoolean, toBoolean } from 'src/common/utility/function.util';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { paginationGenerator, paginationSolver } from 'src/common/utility/pagination.util';
+import { FolderImage } from 'src/common/enum/folder-image.enum';
 
 @Injectable()
 export class CategoryService {
@@ -18,7 +19,7 @@ export class CategoryService {
   ) { }
 
   async create(createCategoryDto: CreateCategoryDto, image: Express.Multer.File) {
-    const { Location } = await this.s3Service.uploadFile(image, "snappfood-image")
+    const { Location, Key } = await this.s3Service.uploadFile(image, FolderImage.snappfoodImage)
     let { title, parentId, show, slug } = createCategoryDto
     const category = await this.findOneBySlug(slug)
     if (category) throw new ConflictException('already exist category')
@@ -34,6 +35,7 @@ export class CategoryService {
       show,
       slug,
       image: Location,
+      imageKey: Key,
       parentId: parent?.id
     })
     return {
@@ -74,11 +76,44 @@ export class CategoryService {
     return await this.categoryRepository.findOneBy({ slug })
   }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    return `This action updates a #${id} category`;
+  async update(id: number, updateCategoryDto: UpdateCategoryDto, image?: Express.Multer.File) {
+    const { title, parentId, show, slug } = updateCategoryDto
+    let category = await this.findOneById(id)
+    const updateObject: DeepPartial<CategoryEntity> = {}
+    if (image) {
+      const { Location, Key } = await this.s3Service.uploadFile(image, FolderImage.snappfoodImage)
+      if (Location) {
+        updateObject['image'] = Location
+        updateObject['imageKey'] = Key
+        await this.s3Service.deleteFile(category?.imageKey)
+      }
+    }
+    if (title) updateObject['title'] = title
+    if (isBoolean(show)) updateObject['show'] = toBoolean(show)
+    if (slug) {
+      const category = await this.findOneBySlug(slug)
+      if (category && category.id !== id) throw new ConflictException('already exist category')
+      updateObject['slug'] = slug
+    }
+    if (parentId && !isNaN(parseInt(parentId.toString()))) {
+      let category = await this.findOneById(id)
+      if (!category) throw new NotFoundException("category not found")
+      updateObject['parentId'] = category.id
+
+    }
+
+    await this.categoryRepository.update(id, updateObject)
+    return {
+      message: "update category success!"
+    }
+
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
+  async remove(id: number) {
+    const category = await this.findOneById(id)
+    await this.categoryRepository.remove(category)
+    return {
+      message: "remove category success!"
+    }
   }
 }

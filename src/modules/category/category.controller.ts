@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Query, ParseIntPipe } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -35,12 +35,24 @@ export class CategoryController {
 
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
-    return this.categoryService.update(+id, updateCategoryDto);
+  @ApiConsumes(SwaggerConsumes.MultipartData)
+  @UseInterceptors(UploadFileS3("image"))
+  update
+    (
+      @Param('id', ParseIntPipe) id: number,
+      @Body() updateCategoryDto: UpdateCategoryDto,
+      @UploadedFile(new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: "image/(png|jpg|jpeg|webp)" })
+        ]
+      })) image: Express.Multer.File,
+    ) {
+    return this.categoryService.update(id, updateCategoryDto, image);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoryService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.categoryService.remove(id);
   }
 }
