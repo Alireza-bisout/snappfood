@@ -73,7 +73,22 @@ export class CategoryService {
   }
 
   async findOneBySlug(slug: string) {
-    return await this.categoryRepository.findOneBy({ slug })
+    const category = await this.categoryRepository.findOneBy({ slug })
+    if (!category) throw new NotFoundException("category not found")
+    return category
+  }
+
+  async findBySlug(slug: string) {
+    const category = await this.categoryRepository.findOne({
+      where: { slug },
+      relations: {
+        children: true
+      }
+    })
+    if (!category) throw new NotFoundException("category not found")
+    return {
+      category,
+    }
   }
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto, image?: Express.Multer.File) {
@@ -85,7 +100,7 @@ export class CategoryService {
       if (Location) {
         updateObject['image'] = Location
         updateObject['imageKey'] = Key
-        await this.s3Service.deleteFile(category?.imageKey)
+        if (category?.imageKey) await this.s3Service.deleteFile(category?.imageKey)
       }
     }
     if (title) updateObject['title'] = title

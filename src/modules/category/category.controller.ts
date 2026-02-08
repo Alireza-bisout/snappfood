@@ -33,6 +33,12 @@ export class CategoryController {
     return this.categoryService.findAll(paginationDto);
   }
 
+  @Get("/by-slug/:slug")
+  @Pagination()
+  findBySlug(@Param("slug") slug: string) {
+    return this.categoryService.findBySlug(slug);
+  }
+
 
   @Patch(':id')
   @ApiConsumes(SwaggerConsumes.MultipartData)
@@ -45,7 +51,8 @@ export class CategoryController {
         validators: [
           new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
           new FileTypeValidator({ fileType: "image/(png|jpg|jpeg|webp)" })
-        ]
+        ],
+        fileIsRequired: false
       })) image: Express.Multer.File,
     ) {
     return this.categoryService.update(id, updateCategoryDto, image);
