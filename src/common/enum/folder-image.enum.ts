@@ -1,3 +1,4 @@
 export enum FolderImage {
-    snappfoodImage = "snappfood-image"
+    snappfoodImage = "snappfood-image",
+    images = "images",
 }

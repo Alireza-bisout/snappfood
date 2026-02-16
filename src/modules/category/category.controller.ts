@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, Upl
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiConsumes } from '@nestjs/swagger';
 import { SwaggerConsumes } from 'src/common/enum/swagger-consume.enums';
 import { UploadFileS3 } from 'src/common/interceptors/upload-file.interceptor';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
